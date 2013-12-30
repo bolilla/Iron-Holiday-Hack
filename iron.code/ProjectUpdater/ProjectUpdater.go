@@ -2,6 +2,9 @@
 package main
 
 import (
+	"encoding/json"
+	"github"
+	"github.com/iron-io/iron_go/cache"
 	"github.com/iron-io/iron_go/config"
 	"github.com/iron-io/iron_go/mq"
 	"log"
@@ -11,13 +14,15 @@ import (
 
 const (
 	queue_to_do_projects = "to_do"
+	project_id           = "52bc58376d31d10005000031"
+	authentication_token = "qefvrPEPKzEZEPNSZw7vz0VUh-s"
 )
 
 func main() {
 	cfg := config.Config("iron_mq")
 	log.Println("Config:", cfg)
-	cfg.ProjectId = "52bc58376d31d10005000031"
-	cfg.Token = "qefvrPEPKzEZEPNSZw7vz0VUh-s"
+	cfg.ProjectId = project_id
+	cfg.Token = authentication_token
 
 	q := mq.New(queue_to_do_projects)
 	q.Settings = cfg
@@ -54,11 +59,12 @@ func processQueue(q *mq.Queue) {
 //Manages the information in a project
 func manageProject(q *mq.Queue, msg *mq.Message, wg *sync.WaitGroup) {
 	defer wg.Done()
-	projectInformation, err := getProjectInformation(msg)
+	projectInformation, err := github.GetProjectInformation(msg.Body)
 	if err != nil {
 		log.Println("Error getting information of project:", msg)
 	} else {
-		err = pushProjectInformation(projectInformation)
+		projectInformationJson, _ := json.Marshal(projectInformation)
+		err = pushProjectInformation(projectInformation.Name, projectInformationJson)
 		if err != nil {
 			log.Println("Error pushing information of project", msg)
 		} else {
@@ -67,34 +73,15 @@ func manageProject(q *mq.Queue, msg *mq.Message, wg *sync.WaitGroup) {
 			_, err = q.PushMessage(msg)
 		}
 	}
-	//id, err := qTo.PushMessage(msg)
-	//if err == nil {
-	//	log.Println("Message \""+id+"\" pushed: ", msg)
-	//	msg.Delay = 3600
-	//	_, err = qFrom.PushMessage(msg)
-	//	if err != nil {
-	//		log.Println("Error copying message \""+id+"\": ", err)
-	//	} else {
-	//		msg.Delete()
-	//		log.Println("Message \"" + id + "\" re-enqueued")
-	//	}
-	//} else {
-	//	log.Println("Error pushing \"", msg, "\":", err)
-	//}
-}
-
-//Gets the information from GitHub
-func getProjectInformation(msg *mq.Message) (result prjInfo, err error) {
-	log.Println("Mocking project information retrieval", msg.Body)
-	return
 }
 
 //Pushes the information to appengine
-func pushProjectInformation(projectInformation prjInfo) error {
-	log.Println("Mocking project information pushing")
-	return nil
-}
-
-//Contains all the information elements of a project
-type prjInfo struct {
+func pushProjectInformation(name string, projectInformation []byte) error {
+	cfg := config.Config("iron_cache")
+	log.Println("Config:", cfg)
+	cfg.ProjectId = project_id
+	cfg.Token = authentication_token
+	c := cache.New("projects")
+	c.Settings = cfg
+	return c.Set(name, string(projectInformation))
 }

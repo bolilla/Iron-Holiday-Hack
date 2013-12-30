@@ -4,20 +4,6 @@ import (
 	"github.com/iron-io/iron_go/config"
 	"github.com/iron-io/iron_go/mq"
 	"log"
-	"time"
-)
-
-type (
-	Code struct {
-		Id              string    `json:"id"`
-		ProjectId       string    `json:"project_id"`
-		Name            string    `json:"name"`
-		Runtime         string    `json:"runtime"`
-		LatestChecksum  string    `json:"latest_checksum"`
-		Revision        int       `json:"rev"`
-		LatestHistoryId string    `json:"latest_history_id"`
-		LatestChange    time.Time `json:"latest_change"`
-	}
 )
 
 func main() {
@@ -30,7 +16,7 @@ func main() {
 
 	q := mq.New("my_queue")
 	log.Println("Queue:", q)
-	err := q.Clear()
+	//err := q.Clear()
 	q.Settings = cfg
 	//if err != nil {
 	//	log.Println("Queue clearing error:", err)
